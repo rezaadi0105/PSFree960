@@ -15,7 +15,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-// 9.00
+// 9.60
 
 #include <stddef.h>
 
@@ -60,14 +60,14 @@ void restore(void *kbase, struct kexec_args *uap) {
 
     u64 *sysent_661_save = uap->arg5;
     for (size_t i = 0; i < 0x30; i += 8) {
-        write64(kbase, 0x1107f00 + i, sysent_661_save[i / 8]);
+        write64(kbase, 0x1100ee0 + i, sysent_661_save[i / 8]);
     }
 }
 
 void patch_aio(void *kbase) {
     disable_cr0_wp();
 
-    const u64 aio_off = 0x415A01;
+    const u64 aio_off = 0xd7771;
 
     // patch = {0xeb, 0x48}
     write16(kbase, aio_off, 0x48eb);
@@ -142,18 +142,18 @@ void do_patch(void *kbase) {
     // ChendoChap's patches from pOOBs4 ///////////////////////////////////////
 
     // Initial patches
-    write16(kbase, 0x626874, 0x00eb); // veriPatch
+    write16(kbase, 0x624ae4, 0x00eb); // veriPatch
     write8(kbase, 0xacd, 0xeb); // bcopy
-    write8(kbase, 0x2713fd, 0xeb); // bzero
-    write8(kbase, 0x271441, 0xeb); // pagezero
-    write8(kbase, 0x2714bd, 0xeb); // memcpy
-    write8(kbase, 0x271501, 0xeb); // pagecopy
-    write8(kbase, 0x2716ad, 0xeb); // copyin
-    write8(kbase, 0x271b5d, 0xeb); // copyinstr
-    write8(kbase, 0x271c2d, 0xeb); // copystr
+    write8(kbase, 0x201c0d, 0xeb); // bzero
+    write8(kbase, 0x201c51, 0xeb); // pagezero
+    write8(kbase, 0x201ccd, 0xeb); // memcpy
+    write8(kbase, 0x201d11, 0xeb); // pagecopy
+    write8(kbase, 0x201ebd, 0xeb); // copyin
+    write8(kbase, 0x20236d, 0xeb); // copyinstr
+    write8(kbase, 0x20243d, 0xeb); // copystr
 
     // stop sysVeri from causing a delayed panic on suspend
-    write16(kbase, 0x62715f, 0x00eb);
+    write16(kbase, 0x6253cf, 0x00eb);
 
     // patch amd64_syscall() to allow calling syscalls everywhere
     // struct syscall_args sa; // initialized already
@@ -198,7 +198,7 @@ void do_patch(void *kbase) {
     // call priv_check_cred(oldcred, PRIV_CRED_SETUID, 0)
     // test eax, eax
     // je ... ; patch je to jmp
-    write8(kbase, 0x1a06, 0xeb);
+    write8(kbase, 0x1fa536, 0xeb);
 
     // patch vm_map_protect() (called by sys_mprotect()) to allow rwx mappings
     //
@@ -208,17 +208,17 @@ void do_patch(void *kbase) {
     //     vm_map_unlock(map);
     //     return (KERN_PROTECTION_FAILURE);
     // }
-    write16(kbase, 0x80b8b, 0x04eb);
+    write16(kbase, 0x196d3b, 0x04eb);
 
     // TODO: Description of this patch. patch sys_dynlib_load_prx()
-    write16(kbase, 0x23aec4, 0xe990);
+    write16(kbase, 0x19f724, 0xe990);
 
     // patch sys_dynlib_dlsym() to allow dynamic symbol resolution everywhere
     // call    ...
     // mov     r14, qword [rbp - 0xad0]
     // cmp     eax, 0x4000000
     // jb      ... ; patch jb to jmp
-    write8(kbase, 0x23b67f, 0xeb);
+    write8(kbase, 0x19fedf, 0xeb);
     // patch called function to always return 0
     //
     // sys_dynlib_dlsym:
@@ -233,7 +233,7 @@ void do_patch(void *kbase) {
     //     push    rbp
     //     mov     rbp, rsp
     //     ...
-    write32(kbase, 0x221b40, 0xc3c03148);
+    write32(kbase, 0x11960, 0xc3c03148);
 
     // patch sys_mmap() to allow rwx mappings
     // patch maximum cpu mem protection: 0x33 -> 0x37
@@ -241,8 +241,8 @@ void do_patch(void *kbase) {
     // GPU X: 0x8 R: 0x10 W: 0x20
     // that's why you see other bits set
     // ref: https://cturt.github.io/ps4-2.html
-    write8(kbase, 0x16632a, 0x37);
-    write8(kbase, 0x16632d, 0x37);
+    write8(kbase, 0x122d7a, 0x37);
+    write8(kbase, 0x122d7d, 0x37);
 
     // overwrite the entry of syscall 11 (unimplemented) in sysent
     //
@@ -260,11 +260,11 @@ void do_patch(void *kbase) {
     // }
 
     // sysent[11]
-    const size_t offset_sysent_11 = 0x1100520;
+    const size_t offset_sysent_11 = 0x10f9500;
     // .sy_narg = 2
     write32(kbase, offset_sysent_11, 2);
     // .sy_call = gadgets['jmp qword ptr [rsi]']
-    write64(kbase, offset_sysent_11 + 8, kbase + 0x4c7ad);
+    write64(kbase, offset_sysent_11 + 8, kbase + 0x15a6d);
     // .sy_thrcnt = SY_THR_STATIC
     write32(kbase, offset_sysent_11 + 0x2c, 1);
 

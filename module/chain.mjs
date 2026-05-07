@@ -553,8 +553,8 @@ function load_fw_specific(version) {
         throw RangeError("PS4 firmwares < 7.00 isn't supported");
     }
 
-    if (0x800 <= value && value <= 0x900) {
-        return import('../rop/900.mjs');
+    if (0x800 <= value && value <= 0x960) {
+        return import('../rop/960.mjs');
     }
 
     throw RangeError('firmware not supported');

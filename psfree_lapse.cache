@@ -1,6 +1,6 @@
 CACHE MANIFEST
 # v1
-# Generated on 2026-05-06 09:20:24.838240
+# Generated on 2026-05-07 11:43:42.928855
 
 CACHE:
 alert.mjs
@@ -15,7 +15,7 @@ goldhen.bin
 index.html
 send.mjs
 lapse.mjs
-rop/900.mjs
+rop/960.mjs
 module/offset.mjs
 module/utils.mjs
 module/view.mjs
@@ -24,7 +24,7 @@ module/memtools.mjs
 module/chain.mjs
 module/int64.mjs
 module/mem.mjs
-kpatch/900.elf
+kpatch/960.elf
 
 NETWORK:
 *
